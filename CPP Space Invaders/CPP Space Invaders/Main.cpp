@@ -22,7 +22,7 @@ void MustInit(bool test, const char* description)
 // Display.
 // =============================================================================
 #define BUFFER_W 256
-#define BUFFER_H 224
+#define BUFFER_H 256
 
 #define DISPLAY_SCALE 3
 #define DISPLAY_W (BUFFER_W * DISPLAY_SCALE)
@@ -91,6 +91,56 @@ void KeyboardUpdate(ALLEGRO_EVENT* event)
 	}
 }
 
+// Player.
+// =============================================================================
+#define CANNON_SPEED 3
+#define CANNON_W 13
+#define CANNON_H 8
+
+#define CANNON_START_X (BUFFER_W / 2) - (CANNON_W / 2)
+#define CANNON_START_Y 217
+
+#define CANNON_MAX_X (BUFFER_W - CANNON_W)
+
+typedef struct SHIP
+{
+	int x, y;
+} SHIP;
+
+SHIP Cannon;
+
+void CannonInit()
+{
+	Cannon.x = CANNON_START_X;
+	Cannon.y = CANNON_START_Y;
+}
+
+void CannonUpdate()
+{
+	if (key[ALLEGRO_KEY_RIGHT])
+	{
+		Cannon.x += CANNON_SPEED;
+	}
+	if (key[ALLEGRO_KEY_LEFT])
+	{
+		Cannon.x -= CANNON_SPEED;
+	}
+
+	if (Cannon.x < 0) Cannon.x = 0;
+	if (Cannon.x > CANNON_MAX_X) Cannon.x = CANNON_MAX_X;
+}
+
+void CannonDraw()
+{
+	al_draw_rectangle(
+		Cannon.x,
+		Cannon.y,
+		Cannon.x + CANNON_W,
+		Cannon.y + CANNON_H,
+		al_map_rgb(29, 255, 29),
+		1.f);
+}
+
 // Main.
 // =============================================================================
 int main()
@@ -119,6 +169,8 @@ int main()
 
 	// Game Loop.
 	// -------------------------------------------------------------------------
+	CannonInit();
+
 	frames = 0;
 	score = 0;
 
@@ -135,6 +187,7 @@ int main()
 		{
 			// Update logic.
 			//------------------------------------------------------------------
+			CannonUpdate();
 
 			if (key[ALLEGRO_KEY_ESCAPE]) isDone = true;
 
@@ -157,6 +210,7 @@ int main()
 
 			// Update draw logic.
 			//------------------------------------------------------------------
+			CannonDraw();
 
 			DisplayPostDraw();
 			needRedraw = false;
