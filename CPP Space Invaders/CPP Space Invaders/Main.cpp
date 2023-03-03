@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_font.h>
+#include <allegro5/allegro_ttf.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_image.h>
 
@@ -114,6 +115,9 @@ void KeyboardUpdate(ALLEGRO_EVENT* event)
 #define ALIEN_SHOT_W 3
 #define ALIEN_SHOT_H 7
 
+const int invadersW[]{ 8, 11, 12 };
+const int invadersH[]{ 8, 8, 8 };
+
 // Cannon.
 // =============================================================================
 typedef struct SHOT
@@ -163,7 +167,7 @@ bool ShotsAdd(bool isFromCannon, int x, int y)
 
 bool ShotsCollide(bool isFromCannon, int x, int y, int  w, int h)
 {
-	for (size_t i = 0; i < SHOTS_N_CANNON; i++)
+	for (size_t i = 0; i < SHOTS_N; i++)
 	{
 		if (shots[i].isAvailable) continue;
 		if (shots[i].isFromCannon == isFromCannon) continue;
@@ -256,6 +260,8 @@ void CannonInit()
 {
 	Cannon.x = CANNON_START_X;
 	Cannon.y = CANNON_START_Y;
+
+	Cannon.lives = 3;
 }
 
 void CannonUpdate()
@@ -294,84 +300,264 @@ void CannonDraw()
 
 // Aliens.
 // =============================================================================
-
-#define INVADER_SQUID_W 8
-#define INVADER_SQUID_H 8
-
-#define INVADER_FLEET_ROWS 5
-#define INVADER_FLEET_COLUMNS 11
-#define INVADER_FLEET_N (INVADER_FLEET_ROWS * INVADER_FLEET_COLUMNS)
-
 typedef enum INVADER_TYPE
 {
 	INVADER_TYPE_SQUID = 0,
+	INVADER_TYPE_CRAB,
+	INVADER_TYPE_OCTOPUS,
 	INVADER_TYPE_N
 } INVADER_TYPE;
 
 typedef struct INVADER
 {
 	int x, y;
-	int life;
 	int points;
+	bool isAlive;
 	INVADER_TYPE type;
 } ALIEN;
-INVADER invaders[INVADER_FLEET_N];
+
+#define INVADER_FLEET_ROWS 5
+#define INVADER_FLEET_COLUMNS 11
+#define INVADER_FLEET_N (INVADER_FLEET_ROWS * INVADER_FLEET_COLUMNS)
+
+#define INVADER_FLEET_CELL_W 12
+#define INVADER_FLEET_CELL_H 8
+#define INVADER_FLEET_CELL_SPACE 3
+
+INVADER invaders[INVADER_FLEET_ROWS][INVADER_FLEET_COLUMNS];
+int invaderFleetMoveTime;
+int invaderFleetMoveTimer;
+int invaderFleetSpeedX;
+int invaderFleetSpeedY;
+bool needMoveInvadersY;
 
 void InvadersInit()
 {
-	int space = 3;
-	int startX = OFFSET + 10;
-	int startY = 50;
+	int x = OFFSET + 32;
+	int y = 65;
 
-	for (size_t y = 0; y < INVADER_FLEET_ROWS; y++)
+	int cellW = INVADER_FLEET_CELL_W + INVADER_FLEET_CELL_SPACE;
+	int cellH = INVADER_FLEET_CELL_H + INVADER_FLEET_CELL_SPACE;
+
+	// Squid invader.
+	int row = 0;
+	for (; row < 1; row++)
 	{
-		for (size_t x = 0; x < INVADER_FLEET_COLUMNS; x++)
+		for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
 		{
-			int index = y * INVADER_FLEET_COLUMNS + x;
-			invaders[index].x = startX + (x * (INVADER_SQUID_W + space));
-			invaders[index].y = startY + (y * (INVADER_SQUID_H + space));
-			invaders[index].life = 1;
-			invaders[index].type = INVADER_TYPE_SQUID;
+			invaders[row][column].type = INVADER_TYPE_SQUID;
+			invaders[row][column].isAlive = true;
+			invaders[row][column].points = 30;
+			invaders[row][column].x = x + 2 + (column * cellW);
+			invaders[row][column].y = y + (row * cellH);
 		}
 	}
+
+	// Crab invader.
+	for (; row < 3; row++)
+	{
+		for (size_t column = 0; column < INVADER_FLEET_COLUMNS; column++)
+		{
+			invaders[row][column].type = INVADER_TYPE_CRAB;
+			invaders[row][column].isAlive = true;
+			invaders[row][column].points = 20;
+			invaders[row][column].x = x + (column * cellW);
+			invaders[row][column].y = y + (row * cellH);
+		}
+	}
+
+	// Crab invader.
+	for (; row < INVADER_FLEET_ROWS; row++)
+	{
+		for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
+		{
+			invaders[row][column].type = INVADER_TYPE_OCTOPUS;
+			invaders[row][column].isAlive = true;
+			invaders[row][column].points = 10;
+			invaders[row][column].x = x + (column * cellW);
+			invaders[row][column].y = y + (row * cellH);
+		}
+	}
+
+	invaderFleetMoveTime = (INVADER_FLEET_N / 3) * 2;
+	invaderFleetMoveTimer = invaderFleetMoveTime;
+
+	invaderFleetSpeedX = 3;
+	invaderFleetSpeedY = 5;
+
+	needMoveInvadersY = false;
 }
 
 void InvadersUpdate()
 {
-	for (size_t y = 0; y < INVADER_FLEET_ROWS; y++)
+	// Collision.
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	for (int row = 0; row < INVADER_FLEET_ROWS; row++)
 	{
-		for (size_t x = 0; x < INVADER_FLEET_COLUMNS; x++)
+		for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
 		{
-			int index = y * INVADER_FLEET_COLUMNS + x;
+			if (!invaders[row][column].isAlive) continue;
 
-			if (invaders[index].life <= 0) continue;
-
-			if (ShotsCollide(false, invaders[index].x, invaders[index].y, INVADER_SQUID_W, INVADER_SQUID_H))
+			if (ShotsCollide(
+				false,
+				invaders[row][column].x,
+				invaders[row][column].y,
+				invadersW[invaders[row][column].type],
+				invadersH[invaders[row][column].type]))
 			{
-				invaders[index].life--;
+				invaders[row][column].isAlive = false;
+
+				score += invaders[row][column].points;
+
+				invaderFleetMoveTime -= 1;
+				if (invaderFleetMoveTime <= 0) invaderFleetMoveTime = 1;
+			}
+		}
+	}
+
+	// Timer.
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	if (invaderFleetMoveTimer > 0)
+	{
+		invaderFleetMoveTimer--;
+	}
+	else
+	{
+		// Move in X.
+		if (!needMoveInvadersY)
+		{
+			for (int row = 0; row < INVADER_FLEET_ROWS; row++)
+			{
+				for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
+				{
+					//if (!invaders[row][column].isAlive) continue;
+					invaders[row][column].x += invaderFleetSpeedX;
+				}
+			}
+
+			// Check positions in X.
+			for (int row = 0; row < INVADER_FLEET_ROWS; row++)
+			{
+				for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
+				{
+					if (!invaders[row][column].isAlive) continue;
+
+					if (invaders[row][column].x <= OFFSET)
+					{
+						invaderFleetSpeedX *= -1;
+						needMoveInvadersY = true;
+						break;
+					}
+					else if ((invaders[row][column].x + invadersW[invaders[row][column].type]) >= (BUFFER_W - OFFSET))
+					{
+						invaderFleetSpeedX *= -1;
+						needMoveInvadersY = true;
+						break;
+					}
+				}
+
+				if (needMoveInvadersY) break;
+			}
+		}
+
+		// Move in Y.
+		if (needMoveInvadersY)
+		{
+			for (size_t row = 0; row < INVADER_FLEET_ROWS; row++)
+			{
+				for (size_t column = 0; column < INVADER_FLEET_COLUMNS; column++)
+				{
+					//if (!invaders[row][column].isAlive) continue;
+					invaders[row][column].y += invaderFleetSpeedY;
+				}
+			}
+
+			needMoveInvadersY = false;
+		}
+
+		// Reset timer.
+		invaderFleetMoveTimer = invaderFleetMoveTime;
+	}
+
+	// --------.
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+}
+
+void InvadersDraw()
+{
+	for (size_t row = 0; row < INVADER_FLEET_ROWS; row++)
+	{
+		for (size_t column = 0; column < INVADER_FLEET_COLUMNS; column++)
+		{
+			//if (!invaders[row][column].isAlive) continue;
+			// TODO: [InvadersDraw]: Don't draw death invaders.
+
+			if (invaders[row][column].isAlive)
+			{
+				al_draw_filled_rectangle(
+					invaders[row][column].x,
+					invaders[row][column].y,
+					invaders[row][column].x + invadersW[invaders[row][column].type],
+					invaders[row][column].y + invadersH[invaders[row][column].type],
+					al_map_rgb(200, 0, 0));
+			}
+			else
+			{
+				al_draw_filled_rectangle(
+					invaders[row][column].x,
+					invaders[row][column].y,
+					invaders[row][column].x + invadersW[invaders[row][column].type],
+					invaders[row][column].y + invadersH[invaders[row][column].type],
+					al_map_rgb(150, 0, 0));
 			}
 		}
 	}
 }
 
-void InvadersDraw()
+// Aliens.
+// =============================================================================
+ALLEGRO_FONT* font;
+long scoreDisplay;
+
+void HUDInit()
 {
-	for (size_t y = 0; y < INVADER_FLEET_ROWS; y++)
+	font = al_load_font("monogram.ttf", 16, 0);
+
+	//font = al_create_builtin_font();
+	MustInit(font, "font");
+
+	scoreDisplay = 0;
+}
+
+void HUDDeinit()
+{
+	al_destroy_font(font);
+}
+
+void HUDUpdate()
+{
+	if (frames % 2) return;
+	for (long i = 5; i > 0; i--)
 	{
-		for (size_t x = 0; x < INVADER_FLEET_COLUMNS; x++)
+		long diff = 1 << i;
+		if (scoreDisplay <= (score - diff))
 		{
-			int index = y * INVADER_FLEET_COLUMNS + x;
-
-			if (invaders[index].life <= 0) continue;
-
-			al_draw_filled_rectangle(
-				invaders[index].x,
-				invaders[index].y,
-				invaders[index].x + INVADER_SQUID_W,
-				invaders[index].y + INVADER_SQUID_H,
-				al_map_rgb(255, 0, 0));
+			scoreDisplay += diff;
 		}
 	}
+}
+
+void HUDDraw()
+{
+	al_draw_text(font, al_map_rgb(255, 255, 255), 46, 8, ALLEGRO_ALIGN_CENTER, "SCORE");
+	al_draw_textf(font, al_map_rgb(255, 255, 255), 46, 20, ALLEGRO_ALIGN_CENTER, "%04ld", scoreDisplay);
+
+	al_draw_text(font, al_map_rgb(255, 255, 255), 100, 8, ALLEGRO_ALIGN_CENTER, "HI-SCORE");
+	al_draw_textf(font, al_map_rgb(255, 255, 255), 100, 20, ALLEGRO_ALIGN_CENTER, "%04ld", 0);
+
+	al_draw_line(OFFSET, 239, BUFFER_W - OFFSET, 239, al_map_rgb(29, 255, 29), 1.f);
+
+	al_draw_textf(font, al_map_rgb(255, 255, 255), OFFSET + 10, 239, 0, "%ld", Cannon.lives);
 }
 
 // Main.
@@ -383,6 +569,8 @@ int main()
 	MustInit(al_init(), "allegro");
 	MustInit(al_install_keyboard(), "keyboard");
 	MustInit(al_init_primitives_addon(), "primitives");
+	MustInit(al_init_font_addon(), "fonts");
+	MustInit(al_init_ttf_addon(), "ttf");
 
 	ALLEGRO_TIMER* timer = al_create_timer(1.0 / 60.0);
 	MustInit(timer, "timer");
@@ -405,6 +593,7 @@ int main()
 	CannonInit();
 	ShotsInit();
 	InvadersInit();
+	HUDInit();
 
 	frames = 0;
 	score = 0;
@@ -423,8 +612,9 @@ int main()
 			// Update logic.
 			//------------------------------------------------------------------
 			CannonUpdate();
-			ShotsUpdate();
 			InvadersUpdate();
+			ShotsUpdate();
+			HUDUpdate();
 
 			if (key[ALLEGRO_KEY_ESCAPE]) isDone = true;
 
@@ -452,6 +642,7 @@ int main()
 			ShotsDraw();
 			InvadersDraw();
 			CannonDraw();
+			HUDDraw();
 
 			DisplayPostDraw();
 			needRedraw = false;
@@ -461,6 +652,7 @@ int main()
 	// Deinitialize.
 	// -------------------------------------------------------------------------
 	DisplayDeinit();
+	HUDDeinit();
 	al_destroy_timer(timer);
 	al_destroy_event_queue(queue);
 
