@@ -11,6 +11,16 @@ long frames;
 long score;
 
 #define OFFSET 16
+#define LAND_POSITION 239
+
+typedef enum GAME_STATE
+{
+	GAME_STATE_RUNNING = 0,
+	GAME_STATE_PLAYER_WIN,
+	GAME_STATE_PLAYER_RESPAWNING,
+	GAME_STATE_INVADERS_WIN
+} GAME_STATE;
+GAME_STATE gameState;
 
 // Utilities.
 // =============================================================================
@@ -20,6 +30,16 @@ void MustInit(bool test, const char* description)
 
 	printf("ERROR: Couldn't initialize %s\n", description);
 	exit(1);
+}
+
+int Between(int lo, int hi)
+{
+	return lo + (rand() % (hi - lo));
+}
+
+float BetweenFloat(float lo, float hi)
+{
+	return lo + ((float)rand() / (float)RAND_MAX) * (hi - lo);
 }
 
 bool Collide(int ax1, int ay1, int ax2, int ay2, int bx1, int by1, int bx2, int by2)
@@ -112,8 +132,8 @@ void KeyboardUpdate(ALLEGRO_EVENT* event)
 #define CANNON_SHOT_W 2
 #define CANNON_SHOT_H 6
 
-#define ALIEN_SHOT_W 3
-#define ALIEN_SHOT_H 7
+#define INVADER_SHOT_W 3
+#define INVADER_SHOT_H 7
 
 const int invadersW[]{ 8, 11, 12 };
 const int invadersH[]{ 8, 8, 8 };
@@ -130,16 +150,17 @@ typedef struct SHOT
 } SHOT;
 
 #define CANNON_SHOT_SPEED 5
+#define INVADER_SHOT_SPEED 1
 
 // Cannon - 1 | Aliens - 3
 #define SHOTS_N_CANNON 1
-#define SHOTS_N_ALIENS 3
-#define SHOTS_N (SHOTS_N_CANNON + SHOTS_N_ALIENS)
+#define SHOTS_N_INVADERS 3
+#define SHOTS_N (SHOTS_N_CANNON + SHOTS_N_INVADERS)
 SHOT shots[SHOTS_N];
 
 void ShotsInit()
 {
-	for (size_t i = 0; i < SHOTS_N; i++)
+	for (int i = 0; i < SHOTS_N; i++)
 	{
 		shots[i].isAvailable = true;
 	}
@@ -149,7 +170,7 @@ bool ShotsAdd(bool isFromCannon, int x, int y)
 {
 	if (isFromCannon)
 	{
-		for (size_t i = 0; i < SHOTS_N_CANNON; i++)
+		for (int i = 0; i < SHOTS_N_CANNON; i++)
 		{
 			if (!shots[i].isAvailable) continue;
 
@@ -157,9 +178,23 @@ bool ShotsAdd(bool isFromCannon, int x, int y)
 			shots[i].y = y + (CANNON_H / 2);
 			shots[i].isAvailable = false;
 			shots[i].isFromCannon = true;
+
+			return true;
 		}
 
 		return false;
+	}
+
+	for (int i = SHOTS_N_CANNON; i < SHOTS_N; i++)
+	{
+		if (!shots[i].isAvailable) continue;
+
+		shots[i].x = x - (INVADER_SHOT_W / 2);
+		shots[i].y = y;
+		shots[i].isAvailable = false;
+		shots[i].isFromCannon = false;
+
+		return true;
 	}
 
 	return false;
@@ -167,7 +202,7 @@ bool ShotsAdd(bool isFromCannon, int x, int y)
 
 bool ShotsCollide(bool isFromCannon, int x, int y, int  w, int h)
 {
-	for (size_t i = 0; i < SHOTS_N; i++)
+	for (int i = 0; i < SHOTS_N; i++)
 	{
 		if (shots[i].isAvailable) continue;
 		if (shots[i].isFromCannon == isFromCannon) continue;
@@ -180,8 +215,8 @@ bool ShotsCollide(bool isFromCannon, int x, int y, int  w, int h)
 		}
 		else
 		{
-			sw = ALIEN_SHOT_W;
-			sh = ALIEN_SHOT_H;
+			sw = INVADER_SHOT_W;
+			sh = INVADER_SHOT_H;
 		}
 
 		if (Collide(x, y, x + w, y + h, shots[i].x, shots[i].y, shots[i].x + sw, shots[i].y + sh))
@@ -195,7 +230,8 @@ bool ShotsCollide(bool isFromCannon, int x, int y, int  w, int h)
 
 void ShotsUpdate()
 {
-	for (size_t i = 0; i < SHOTS_N_CANNON; i++)
+	// Cannon shots.
+	for (int i = 0; i < SHOTS_N_CANNON; i++)
 	{
 		if (shots[i].isAvailable) continue;
 
@@ -206,13 +242,32 @@ void ShotsUpdate()
 			shots[i].isAvailable = true;
 			continue;
 		}
+
+		if (ShotsCollide(true, shots[i].x, shots[i].y, INVADER_SHOT_W, INVADER_SHOT_H))
+		{
+			if (Between(0, 100) <= 80) shots[i].isAvailable = true;
+		}
+	}
+
+	// Invaders shots.
+	for (int i = SHOTS_N_CANNON; i < SHOTS_N; i++)
+	{
+		if (shots[i].isAvailable) continue;
+
+		shots[i].y += INVADER_SHOT_SPEED;
+
+		if (shots[i].y + INVADER_SHOT_H > LAND_POSITION)
+		{
+			shots[i].isAvailable = true;
+			continue;
+		}
 	}
 }
 
 void ShotsDraw()
 {
 	//	Cannon shots
-	for (size_t i = 0; i < SHOTS_N_CANNON; i++)
+	for (int i = 0; i < SHOTS_N_CANNON; i++)
 	{
 		if (shots[i].isAvailable) continue;
 
@@ -225,22 +280,22 @@ void ShotsDraw()
 	}
 
 	// Alien shots
-	for (size_t i = SHOTS_N_CANNON; i < SHOTS_N; i++)
+	for (int i = SHOTS_N_CANNON; i < SHOTS_N; i++)
 	{
 		if (shots[i].isAvailable) continue;
 
 		al_draw_filled_rectangle(
 			shots[i].x,
 			shots[i].y,
-			shots[i].x + ALIEN_SHOT_W,
-			shots[i].y + ALIEN_SHOT_H,
-			al_map_rgb(255, 0, 0));
+			shots[i].x + INVADER_SHOT_W,
+			shots[i].y + INVADER_SHOT_H,
+			al_map_rgb(255, 255, 0));
 	}
 }
 
 // Cannon.
 // =============================================================================
-#define CANNON_SPEED 3
+#define CANNON_SPEED 2
 
 #define CANNON_START_X (BUFFER_W / 2) - (CANNON_W / 2)
 #define CANNON_START_Y 217
@@ -285,11 +340,18 @@ void CannonUpdate()
 
 	if (ShotsCollide(true, Cannon.x, Cannon.y, CANNON_W, CANNON_H))
 	{
+		Cannon.lives--;
+		if (Cannon.lives <= 0)
+		{
+			gameState = GAME_STATE_INVADERS_WIN;
+		}
 	}
 }
 
 void CannonDraw()
 {
+	if (Cannon.lives < 0) return;
+
 	al_draw_filled_rectangle(
 		Cannon.x,
 		Cannon.y,
@@ -322,7 +384,7 @@ typedef struct INVADER
 
 #define INVADER_FLEET_CELL_W 12
 #define INVADER_FLEET_CELL_H 8
-#define INVADER_FLEET_CELL_SPACE 3
+#define INVADER_FLEET_CELL_SPACE 4
 
 INVADER invaders[INVADER_FLEET_ROWS][INVADER_FLEET_COLUMNS];
 int invaderFleetMoveTime;
@@ -330,11 +392,16 @@ int invaderFleetMoveTimer;
 int invaderFleetSpeedX;
 int invaderFleetSpeedY;
 bool needMoveInvadersY;
+int invadersAlive;
+
+#define INVADER_SHOT_MAX_TIME 240
+#define INVADER_SHOT_MIN_TIME 120
+int invaderFleetShotTimer;
 
 void InvadersInit()
 {
 	int x = OFFSET + 32;
-	int y = 65;
+	int y = 46;
 
 	int cellW = INVADER_FLEET_CELL_W + INVADER_FLEET_CELL_SPACE;
 	int cellH = INVADER_FLEET_CELL_H + INVADER_FLEET_CELL_SPACE;
@@ -382,10 +449,14 @@ void InvadersInit()
 	invaderFleetMoveTime = (INVADER_FLEET_N / 3) * 2;
 	invaderFleetMoveTimer = invaderFleetMoveTime;
 
+	invadersAlive = INVADER_FLEET_N;
+
 	invaderFleetSpeedX = 3;
-	invaderFleetSpeedY = 5;
+	invaderFleetSpeedY = 8;
 
 	needMoveInvadersY = false;
+
+	invaderFleetShotTimer = Between(INVADER_SHOT_MIN_TIME, INVADER_SHOT_MAX_TIME);
 }
 
 void InvadersUpdate()
@@ -398,6 +469,7 @@ void InvadersUpdate()
 		{
 			if (!invaders[row][column].isAlive) continue;
 
+			// Shots collision.
 			if (ShotsCollide(
 				false,
 				invaders[row][column].x,
@@ -406,16 +478,69 @@ void InvadersUpdate()
 				invadersH[invaders[row][column].type]))
 			{
 				invaders[row][column].isAlive = false;
+				invadersAlive--;
+				if (invadersAlive == 0)
+				{
+					gameState = GAME_STATE_PLAYER_WIN;
+					return;
+				}
 
 				score += invaders[row][column].points;
 
 				invaderFleetMoveTime -= 1;
 				if (invaderFleetMoveTime <= 0) invaderFleetMoveTime = 1;
 			}
+
+			// Cannon collision.
+			if (Collide(
+				invaders[row][column].x,
+				invaders[row][column].y,
+				invaders[row][column].x + invadersW[invaders[row][column].type],
+				invaders[row][column].y + invadersH[invaders[row][column].type],
+				Cannon.x,
+				Cannon.y,
+				Cannon.x + CANNON_W,
+				Cannon.y + CANNON_H))
+			{
+				gameState = GAME_STATE_INVADERS_WIN;
+				return;
+			}
 		}
 	}
 
-	// Timer.
+	// Timer (Shoting).
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	if (invaderFleetShotTimer > 0)
+	{
+		invaderFleetShotTimer--;
+	}
+	else
+	{
+		bool invaderShot = false;
+		for (int row = 0; row < INVADER_FLEET_ROWS; row++)
+		{
+			for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
+			{
+				if (!invaders[row][column].isAlive) continue;
+
+				if (Between(0, 100) >= 90)
+				{
+					invaderShot = ShotsAdd(
+						false,
+						invaders[row][column].x + (invadersW[invaders[row][column].type] / 2),
+						invaders[row][column].y);
+
+					if (invaderShot) break;
+				}
+			}
+
+			if (invaderShot) break;
+		}
+
+		invaderFleetShotTimer = Between(INVADER_SHOT_MIN_TIME, INVADER_SHOT_MAX_TIME);
+	}
+
+	// Timer (Movement).
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	if (invaderFleetMoveTimer > 0)
 	{
@@ -430,7 +555,6 @@ void InvadersUpdate()
 			{
 				for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
 				{
-					//if (!invaders[row][column].isAlive) continue;
 					invaders[row][column].x += invaderFleetSpeedX;
 				}
 			}
@@ -456,19 +580,38 @@ void InvadersUpdate()
 					}
 				}
 
-				if (needMoveInvadersY) break;
+				if (needMoveInvadersY)
+				{
+					invaderFleetMoveTimer = invaderFleetMoveTime;
+					return;
+				}
 			}
 		}
 
 		// Move in Y.
 		if (needMoveInvadersY)
 		{
-			for (size_t row = 0; row < INVADER_FLEET_ROWS; row++)
+			for (int row = 0; row < INVADER_FLEET_ROWS; row++)
 			{
-				for (size_t column = 0; column < INVADER_FLEET_COLUMNS; column++)
+				for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
 				{
-					//if (!invaders[row][column].isAlive) continue;
 					invaders[row][column].y += invaderFleetSpeedY;
+				}
+			}
+
+			// Check land position.
+			for (int row = 0; row < INVADER_FLEET_ROWS; row++)
+			{
+				for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
+				{
+					if (!invaders[row][column].isAlive) continue;
+
+					int invaderPositon = invaders[row][column].y + invadersH[invaders[row][column].type] + 3;
+					if (invaderPositon >= LAND_POSITION)
+					{
+						gameState = GAME_STATE_INVADERS_WIN;
+						return;
+					}
 				}
 			}
 
@@ -478,9 +621,6 @@ void InvadersUpdate()
 		// Reset timer.
 		invaderFleetMoveTimer = invaderFleetMoveTime;
 	}
-
-	// --------.
-	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 
 void InvadersDraw()
@@ -557,7 +697,17 @@ void HUDDraw()
 
 	al_draw_line(OFFSET, 239, BUFFER_W - OFFSET, 239, al_map_rgb(29, 255, 29), 1.f);
 
-	al_draw_textf(font, al_map_rgb(255, 255, 255), OFFSET + 10, 239, 0, "%ld", Cannon.lives);
+	al_draw_textf(font, al_map_rgb(255, 255, 255), OFFSET + 10, LAND_POSITION, 0, "%ld", Cannon.lives);
+
+	if (gameState == GAME_STATE_PLAYER_WIN)
+	{
+		al_draw_text(font, al_map_rgb_f(1, 1, 1), BUFFER_W / 2, BUFFER_H / 2, ALLEGRO_ALIGN_CENTER, "G A M E  O V E R");
+		al_draw_text(font, al_map_rgb_f(1, 1, 1), BUFFER_W / 2, BUFFER_H / 2 + 20, ALLEGRO_ALIGN_CENTER, "W I N");
+	}
+	if (gameState == GAME_STATE_INVADERS_WIN)
+	{
+		al_draw_text(font, al_map_rgb_f(1, 1, 1), BUFFER_W / 2, BUFFER_H / 2, ALLEGRO_ALIGN_CENTER, "G A M E  O V E R");
+	}
 }
 
 // Main.
@@ -597,6 +747,9 @@ int main()
 
 	frames = 0;
 	score = 0;
+	gameState = GAME_STATE_RUNNING;
+
+	srand(time(NULL));
 
 	bool isDone = false;
 	bool needRedraw = true;
@@ -611,9 +764,12 @@ int main()
 		{
 			// Update logic.
 			//------------------------------------------------------------------
-			CannonUpdate();
-			InvadersUpdate();
-			ShotsUpdate();
+			if (gameState == GAME_STATE_RUNNING)
+			{
+				CannonUpdate();
+				InvadersUpdate();
+				ShotsUpdate();
+			}
 			HUDUpdate();
 
 			if (key[ALLEGRO_KEY_ESCAPE]) isDone = true;
@@ -639,9 +795,9 @@ int main()
 
 			// Update draw logic.
 			//------------------------------------------------------------------
-			ShotsDraw();
-			InvadersDraw();
 			CannonDraw();
+			InvadersDraw();
+			ShotsDraw();
 			HUDDraw();
 
 			DisplayPostDraw();
