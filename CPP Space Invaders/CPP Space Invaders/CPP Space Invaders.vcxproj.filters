@@ -27,4 +27,24 @@
       <Filter>Archivos de recursos</Filter>
     </Font>
   </ItemGroup>
+  <ItemGroup>
+    <Media Include="invaderkilled.wav">
+      <Filter>Archivos de recursos</Filter>
+    </Media>
+    <Media Include="shoot.wav">
+      <Filter>Archivos de recursos</Filter>
+    </Media>
+    <Media Include="fastinvader4.wav">
+      <Filter>Archivos de recursos</Filter>
+    </Media>
+    <Media Include="fastinvader1.wav">
+      <Filter>Archivos de recursos</Filter>
+    </Media>
+    <Media Include="fastinvader2.wav">
+      <Filter>Archivos de recursos</Filter>
+    </Media>
+    <Media Include="fastinvader3.wav">
+      <Filter>Archivos de recursos</Filter>
+    </Media>
+  </ItemGroup>
 </Project>
