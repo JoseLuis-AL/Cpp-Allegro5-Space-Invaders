@@ -1,4 +1,6 @@
 #include <cstdio>
+#include <iostream>
+#include <fstream>
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
@@ -11,6 +13,7 @@
 // =============================================================================
 long frames;
 long score;
+long hiscore;
 
 #define OFFSET 16
 #define LAND_POSITION 239
@@ -180,7 +183,8 @@ typedef struct SPRITES
 	ALLEGRO_BITMAP* invaderExplosion;
 
 	ALLEGRO_BITMAP* cannonShot;
-	ALLEGRO_BITMAP* invaderShot;
+	ALLEGRO_BITMAP* invaderShot1;
+	ALLEGRO_BITMAP* invaderShot2;
 
 	ALLEGRO_BITMAP* cannonShotExplosion;
 	ALLEGRO_BITMAP* invaderShotExplosion;
@@ -203,7 +207,8 @@ void SpriteInit()
 	sprites.life = GetSprite(16, 0, CANNON_W, CANNON_H);
 
 	sprites.cannonShot = GetSprite(46, 7, CANNON_SHOT_W, CANNON_SHOT_H);
-	sprites.invaderShot = GetSprite(28, 16, INVADER_SHOT_W, INVADER_SHOT_H);
+	sprites.invaderShot1 = GetSprite(28, 16, INVADER_SHOT_W, INVADER_SHOT_H);
+	sprites.invaderShot2 = GetSprite(31, 16, INVADER_SHOT_W, INVADER_SHOT_H);
 
 	sprites.cannonShotExplosion = GetSprite(42, 0, CANNON_SHOT_EXPLOSION_W, CANNON_SHOT_EXPLOSION_H);
 	sprites.invaderShotExplosion = GetSprite(16, 16, INVADER_SHOT_EXPLOSION_W, INVADER_SHOT_EXPLOSION_H);
@@ -212,10 +217,10 @@ void SpriteInit()
 	sprites.invaderSquid[1] = GetSprite(8, 16, invadersW[INVADER_TYPE_SQUID], invadersH[INVADER_TYPE_SQUID]);
 
 	sprites.invaderCrab[0] = GetSprite(24, 8, invadersW[INVADER_TYPE_CRAB], invadersH[INVADER_TYPE_CRAB]);
-	sprites.invaderCrab[1] = GetSprite(13, 8, invadersW[INVADER_TYPE_CRAB], invadersH[INVADER_TYPE_CRAB]);
+	sprites.invaderCrab[1] = GetSprite(35, 8, invadersW[INVADER_TYPE_CRAB], invadersH[INVADER_TYPE_CRAB]);
 
 	sprites.invaderOctopus[0] = GetSprite(0, 8, invadersW[INVADER_TYPE_OCTOPUS], invadersH[INVADER_TYPE_OCTOPUS]);
-	sprites.invaderOctopus[1] = GetSprite(35, 8, invadersW[INVADER_TYPE_OCTOPUS], invadersH[INVADER_TYPE_OCTOPUS]);
+	sprites.invaderOctopus[1] = GetSprite(12, 8, invadersW[INVADER_TYPE_OCTOPUS], invadersH[INVADER_TYPE_OCTOPUS]);
 
 	sprites.invaderExplosion = GetSprite(29, 0, INVADER_EXPLOSION_W, INVADER_EXPLOSION_H);
 }
@@ -238,7 +243,8 @@ void SpriteDeinit()
 	al_destroy_bitmap(sprites.invaderExplosion);
 
 	al_destroy_bitmap(sprites.cannonShot);
-	al_destroy_bitmap(sprites.invaderShot);
+	al_destroy_bitmap(sprites.invaderShot1);
+	al_destroy_bitmap(sprites.invaderShot2);
 
 	al_destroy_bitmap(sprites.cannonShotExplosion);
 	al_destroy_bitmap(sprites.invaderShotExplosion);
@@ -459,8 +465,11 @@ typedef struct SHOT
 	int frame;
 	bool isAvailable;
 	bool isFromCannon;
-	ALLEGRO_BITMAP* sprite;
+
+	ALLEGRO_BITMAP* sprites[2];
 } SHOT;
+
+#define SHOT_UPDATE_FRAMES 30
 
 #define CANNON_SHOT_SPEED 4
 #define INVADER_SHOT_SPEED 1
@@ -493,7 +502,8 @@ bool ShotsAdd(bool isFromCannon, int x, int y)
 			shots[i].y = y + (CANNON_H / 2);
 			shots[i].isAvailable = false;
 			shots[i].isFromCannon = true;
-			shots[i].sprite = sprites.cannonShot;
+			shots[i].sprites[0] = sprites.cannonShot;
+			shots[i].sprites[1] = sprites.cannonShot;
 
 			return true;
 		}
@@ -511,7 +521,8 @@ bool ShotsAdd(bool isFromCannon, int x, int y)
 		shots[i].y = y;
 		shots[i].isAvailable = false;
 		shots[i].isFromCannon = false;
-		shots[i].sprite = sprites.invaderShot;
+		shots[i].sprites[0] = sprites.invaderShot1;
+		shots[i].sprites[1] = sprites.invaderShot2;
 
 		return true;
 	}
@@ -582,6 +593,12 @@ void ShotsUpdate()
 			shots[i].isAvailable = true;
 			continue;
 		}
+
+		if (frames % SHOT_UPDATE_FRAMES == 0)
+		{
+			shots[i].frame++;
+			if (shots[i].frame > 1) shots[i].frame = 0;
+		}
 	}
 }
 
@@ -591,7 +608,7 @@ void ShotsDraw()
 	{
 		if (shots[i].isAvailable) continue;
 
-		al_draw_bitmap(shots[i].sprite, shots[i].x, shots[i].y, NULL);
+		al_draw_bitmap(shots[i].sprites[shots[i].frame], shots[i].x, shots[i].y, NULL);
 	}
 }
 
@@ -677,8 +694,9 @@ typedef struct INVADER
 {
 	int x, y;
 	int points;
+	int frame;
 	bool isAlive;
-	ALLEGRO_BITMAP* sprite;
+	ALLEGRO_BITMAP* sprites[2];
 	INVADER_TYPE type;
 } ALIEN;
 
@@ -724,9 +742,11 @@ void InvadersInit()
 			invaders[row][column].type = INVADER_TYPE_SQUID;
 			invaders[row][column].isAlive = true;
 			invaders[row][column].points = 30;
+			invaders[row][column].frame = 0;
 			invaders[row][column].x = x + 2 + (column * cellW);
 			invaders[row][column].y = y + (row * cellH);
-			invaders[row][column].sprite = sprites.invaderSquid[0];
+			invaders[row][column].sprites[0] = sprites.invaderSquid[0];
+			invaders[row][column].sprites[1] = sprites.invaderSquid[1];
 		}
 	}
 
@@ -738,13 +758,15 @@ void InvadersInit()
 			invaders[row][column].type = INVADER_TYPE_CRAB;
 			invaders[row][column].isAlive = true;
 			invaders[row][column].points = 20;
+			invaders[row][column].frame = 0;
 			invaders[row][column].x = x + (column * cellW);
 			invaders[row][column].y = y + (row * cellH);
-			invaders[row][column].sprite = sprites.invaderCrab[0];
+			invaders[row][column].sprites[0] = sprites.invaderCrab[0];
+			invaders[row][column].sprites[1] = sprites.invaderCrab[1];
 		}
 	}
 
-	// Crab invader.
+	// Octopus invader.
 	for (; row < INVADER_FLEET_ROWS; row++)
 	{
 		for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
@@ -752,9 +774,11 @@ void InvadersInit()
 			invaders[row][column].type = INVADER_TYPE_OCTOPUS;
 			invaders[row][column].isAlive = true;
 			invaders[row][column].points = 10;
+			invaders[row][column].frame = 0;
 			invaders[row][column].x = x + (column * cellW);
 			invaders[row][column].y = y + (row * cellH);
-			invaders[row][column].sprite = sprites.invaderOctopus[0];
+			invaders[row][column].sprites[0] = sprites.invaderOctopus[0];
+			invaders[row][column].sprites[1] = sprites.invaderOctopus[1];
 		}
 	}
 
@@ -909,6 +933,9 @@ void InvadersUpdate()
 					needMoveInvadersY = true;
 					break;
 				}
+
+				invaders[row][column].frame++;
+				if (invaders[row][column].frame > 1) invaders[row][column].frame = 0;
 			}
 
 			if (needMoveInvadersY)
@@ -973,7 +1000,7 @@ void InvadersDraw()
 		{
 			if (!invaders[row][column].isAlive) continue;
 
-			al_draw_bitmap(invaders[row][column].sprite, invaders[row][column].x, invaders[row][column].y, NULL);
+			al_draw_bitmap(invaders[row][column].sprites[invaders[row][column].frame], invaders[row][column].x, invaders[row][column].y, NULL);
 		}
 	}
 }
@@ -1017,7 +1044,7 @@ void HUDDraw()
 	al_draw_textf(font, al_map_rgb(255, 255, 255), 46, 20, ALLEGRO_ALIGN_CENTER, "%04ld", scoreDisplay);
 
 	al_draw_text(font, al_map_rgb(255, 255, 255), 100, 8, ALLEGRO_ALIGN_CENTER, "HI-SCORE");
-	al_draw_textf(font, al_map_rgb(255, 255, 255), 100, 20, ALLEGRO_ALIGN_CENTER, "%04ld", 0);
+	al_draw_textf(font, al_map_rgb(255, 255, 255), 100, 20, ALLEGRO_ALIGN_CENTER, "%04ld", hiscore);
 
 	al_draw_line(OFFSET, 239, BUFFER_W - OFFSET, 239, al_map_rgb(29, 255, 29), 1.f);
 
@@ -1040,6 +1067,25 @@ void HUDDraw()
 	if (gameState == GAME_STATE_INVADERS_WIN)
 	{
 		al_draw_text(font, al_map_rgb_f(1, 1, 1), BUFFER_W / 2, BUFFER_H / 2, ALLEGRO_ALIGN_CENTER, "G A M E  O V E R");
+	}
+}
+
+// Score.
+// =============================================================================
+void ScoreLoad()
+{
+	std::ifstream infile("score.txt");
+	infile >> hiscore;
+	infile.close();
+}
+
+void ScoreSave()
+{
+	if (score > hiscore)
+	{
+		std::ofstream outfile("score.txt");
+		outfile << score;
+		outfile.close();
 	}
 }
 
@@ -1083,8 +1129,9 @@ int main()
 	HUDInit();
 
 	frames = 0;
-	score = 0;
 	gameState = GAME_STATE_RUNNING;
+
+	ScoreLoad();
 
 	srand(time(NULL));
 
@@ -1170,6 +1217,10 @@ int main()
 			needRedraw = false;
 		}
 	}
+
+	// Save score.
+	// -------------------------------------------------------------------------
+	ScoreSave();
 
 	// Deinitialize.
 	// -------------------------------------------------------------------------
