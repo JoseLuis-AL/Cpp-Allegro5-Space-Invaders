@@ -134,33 +134,123 @@ void KeyboardUpdate(ALLEGRO_EVENT* event)
 #define CANNON_SHOT_W 2
 #define CANNON_SHOT_H 6
 
-#define CANNON_EXPLOSION_W 13
+#define CANNON_EXPLOSION_W 16
 #define CANNON_EXPLOSION_H 8
 #define CANNON_EXPLOSION_FRAMES 8;
 
 #define CANNON_SHOT_EXPLOSION_W 6
-#define CANNON_SHOT_EXPLOSION_H 8
+#define CANNON_SHOT_EXPLOSION_H 7
 
-#define EXPLOSION_FRAMES 2
+#define EXPLOSION_FRAMES 8
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+typedef enum INVADER_TYPE
+{
+	INVADER_TYPE_SQUID = 0,
+	INVADER_TYPE_CRAB,
+	INVADER_TYPE_OCTOPUS,
+	INVADER_TYPE_N
+} INVADER_TYPE;
+
 const int invadersW[]{ 8, 11, 12 };
 const int invadersH[]{ 8, 8, 8 };
 
 #define INVADER_SHOT_W 3
 #define INVADER_SHOT_H 7
 
-#define INVADER_EXPLOSION_W 11
-#define INVADER_EXPLOSION_H 8
-#define INVADER_EXPLOSION_FRAMES 4;
+#define INVADER_EXPLOSION_W 13
+#define INVADER_EXPLOSION_H 9
+#define INVADER_EXPLOSION_FRAMES 8
 
 #define INVADER_SHOT_EXPLOSION_W 6
-#define INVADER_SHOT_EXPLOSION_H 8
+#define INVADER_SHOT_EXPLOSION_H 7
+
+typedef struct SPRITES
+{
+	ALLEGRO_BITMAP* _sheet;
+
+	ALLEGRO_BITMAP* cannon;
+	ALLEGRO_BITMAP* cannonExplosion;
+	ALLEGRO_BITMAP* life;
+
+	ALLEGRO_BITMAP* invaderSquid[2];
+	ALLEGRO_BITMAP* invaderCrab[2];
+	ALLEGRO_BITMAP* invaderOctopus[2];
+
+	ALLEGRO_BITMAP* invaderExplosion;
+
+	ALLEGRO_BITMAP* cannonShot;
+	ALLEGRO_BITMAP* invaderShot;
+
+	ALLEGRO_BITMAP* cannonShotExplosion;
+	ALLEGRO_BITMAP* invaderShotExplosion;
+} Sprite;
+SPRITES sprites;
+
+ALLEGRO_BITMAP* GetSprite(int x, int y, int w, int h)
+{
+	ALLEGRO_BITMAP* sprite = al_create_sub_bitmap(sprites._sheet, x, y, w, h);
+	MustInit(sprite, "get sprite.");
+	return sprite;
+}
+
+void SpriteInit()
+{
+	sprites._sheet = al_load_bitmap("spritesheet.png");
+
+	sprites.cannon = GetSprite(16, 0, CANNON_W, CANNON_H);
+	sprites.cannonExplosion = GetSprite(0, 0, CANNON_EXPLOSION_W, CANNON_EXPLOSION_H);
+	sprites.life = GetSprite(16, 0, CANNON_W, CANNON_H);
+
+	sprites.cannonShot = GetSprite(46, 7, CANNON_SHOT_W, CANNON_SHOT_H);
+	sprites.invaderShot = GetSprite(28, 16, INVADER_SHOT_W, INVADER_SHOT_H);
+
+	sprites.cannonShotExplosion = GetSprite(42, 0, CANNON_SHOT_EXPLOSION_W, CANNON_SHOT_EXPLOSION_H);
+	sprites.invaderShotExplosion = GetSprite(16, 16, INVADER_SHOT_EXPLOSION_W, INVADER_SHOT_EXPLOSION_H);
+
+	sprites.invaderSquid[0] = GetSprite(0, 16, invadersW[INVADER_TYPE_SQUID], invadersH[INVADER_TYPE_SQUID]);
+	sprites.invaderSquid[1] = GetSprite(8, 16, invadersW[INVADER_TYPE_SQUID], invadersH[INVADER_TYPE_SQUID]);
+
+	sprites.invaderCrab[0] = GetSprite(24, 8, invadersW[INVADER_TYPE_CRAB], invadersH[INVADER_TYPE_CRAB]);
+	sprites.invaderCrab[1] = GetSprite(13, 8, invadersW[INVADER_TYPE_CRAB], invadersH[INVADER_TYPE_CRAB]);
+
+	sprites.invaderOctopus[0] = GetSprite(0, 8, invadersW[INVADER_TYPE_OCTOPUS], invadersH[INVADER_TYPE_OCTOPUS]);
+	sprites.invaderOctopus[1] = GetSprite(35, 8, invadersW[INVADER_TYPE_OCTOPUS], invadersH[INVADER_TYPE_OCTOPUS]);
+
+	sprites.invaderExplosion = GetSprite(29, 0, INVADER_EXPLOSION_W, INVADER_EXPLOSION_H);
+}
+
+void SpriteDeinit()
+{
+	al_destroy_bitmap(sprites.cannon);
+	al_destroy_bitmap(sprites.cannonExplosion);
+	al_destroy_bitmap(sprites.life);
+
+	al_destroy_bitmap(sprites.invaderSquid[0]);
+	al_destroy_bitmap(sprites.invaderSquid[1]);
+
+	al_destroy_bitmap(sprites.invaderCrab[0]);
+	al_destroy_bitmap(sprites.invaderCrab[1]);
+
+	al_destroy_bitmap(sprites.invaderOctopus[0]);
+	al_destroy_bitmap(sprites.invaderOctopus[1]);
+
+	al_destroy_bitmap(sprites.invaderExplosion);
+
+	al_destroy_bitmap(sprites.cannonShot);
+	al_destroy_bitmap(sprites.invaderShot);
+
+	al_destroy_bitmap(sprites.cannonShotExplosion);
+	al_destroy_bitmap(sprites.invaderShotExplosion);
+
+	al_destroy_bitmap(sprites._sheet);
+}
 
 // Sound.
 // =============================================================================
 #define SAMPLES_N
 ALLEGRO_SAMPLE* sampleCannonShoot;
+ALLEGRO_SAMPLE* sampleCannonExplosion;
 ALLEGRO_SAMPLE* sampleInvaderExplosion;
 
 ALLEGRO_SAMPLE* samplesInvadersMove[4];
@@ -172,6 +262,7 @@ void AudioInit()
 	al_reserve_samples(256);
 
 	sampleCannonShoot = al_load_sample("shoot.wav");
+	sampleCannonExplosion = al_load_sample("explosion.wav");
 	MustInit(sampleCannonShoot, "shoot.wav");
 
 	sampleInvaderExplosion = al_load_sample("invaderkilled.wav");
@@ -193,6 +284,7 @@ void AudioInit()
 void AudioDeinit()
 {
 	al_destroy_sample(sampleCannonShoot);
+	al_destroy_sample(sampleCannonExplosion);
 	al_destroy_sample(sampleInvaderExplosion);
 
 	al_destroy_sample(samplesInvadersMove[0]);
@@ -218,6 +310,7 @@ typedef struct FX
 	int currentFrame;
 	int frames;
 	bool isAvailable;
+	ALLEGRO_BITMAP* sprite;
 } FX;
 
 #define CANNON_EXPLOSION_INDEX 0
@@ -238,6 +331,7 @@ void FxInit()
 	fx[CANNON_EXPLOSION_INDEX].frames = CANNON_EXPLOSION_FRAMES;
 	fx[CANNON_EXPLOSION_INDEX].currentFrame = 0;
 	fx[CANNON_EXPLOSION_INDEX].isAvailable = true;
+	fx[CANNON_EXPLOSION_INDEX].sprite = sprites.cannonExplosion;
 
 	// Invader explosion.
 	fx[INVADER_EXPLOSION_INDEX].x = 0;
@@ -247,6 +341,7 @@ void FxInit()
 	fx[INVADER_EXPLOSION_INDEX].frames = INVADER_EXPLOSION_FRAMES;
 	fx[INVADER_EXPLOSION_INDEX].currentFrame = 0;
 	fx[INVADER_EXPLOSION_INDEX].isAvailable = true;
+	fx[INVADER_EXPLOSION_INDEX].sprite = sprites.invaderExplosion;
 	displayInvaderExplosion = false;
 
 	// Shots explosions.
@@ -260,11 +355,14 @@ bool FxAdd(int x, int y, FX_TYPE type)
 {
 	if (type == FX_TYPE_CANNON_EXPLOSION)
 	{
+		al_play_sample(sampleCannonExplosion, 1.f, 0.f, 1.f, ALLEGRO_PLAYMODE_ONCE, NULL);
+
 		if (!fx[CANNON_EXPLOSION_INDEX].isAvailable) return false;
 		fx[CANNON_EXPLOSION_INDEX].x = x;
 		fx[CANNON_EXPLOSION_INDEX].y = y;
 		fx[CANNON_EXPLOSION_INDEX].currentFrame = 0;
 		fx[CANNON_EXPLOSION_INDEX].isAvailable = false;
+
 		return true;
 	}
 
@@ -286,17 +384,20 @@ bool FxAdd(int x, int y, FX_TYPE type)
 		if (!fx[i].isAvailable) continue;
 
 		int w = 1, h = 1, frames = 1;
+		ALLEGRO_BITMAP* sprite = NULL;
 		if (type == FX_TYPE_CANNON_SHOT_EXPLOSION)
 		{
 			w = CANNON_SHOT_EXPLOSION_W;
 			h = CANNON_SHOT_EXPLOSION_H;
 			frames = EXPLOSION_FRAMES;
+			sprite = sprites.cannonShotExplosion;
 		}
 		else if (type == FX_TYPE_INVADER_SHOT_EXPLOSION)
 		{
 			w = CANNON_SHOT_EXPLOSION_W;
 			h = CANNON_SHOT_EXPLOSION_H;
 			frames = EXPLOSION_FRAMES;
+			sprite = sprites.invaderShotExplosion;
 		}
 		fx[i].x = x;
 		fx[i].y = y;
@@ -305,6 +406,7 @@ bool FxAdd(int x, int y, FX_TYPE type)
 		fx[i].frames = frames;
 		fx[i].currentFrame = 0;
 		fx[i].isAvailable = false;
+		fx[i].sprite = sprite;
 
 		return true;
 	}
@@ -344,12 +446,7 @@ void FxDraw()
 	{
 		if (fx[i].isAvailable) continue;
 
-		al_draw_filled_rectangle(
-			fx[i].x,
-			fx[i].y,
-			fx[i].x + fx[i].w,
-			fx[i].y + fx[i].h,
-			al_map_rgb(254, 174, 52));
+		al_draw_bitmap(fx[i].sprite, fx[i].x, fx[i].y, NULL);
 	}
 }
 
@@ -362,6 +459,7 @@ typedef struct SHOT
 	int frame;
 	bool isAvailable;
 	bool isFromCannon;
+	ALLEGRO_BITMAP* sprite;
 } SHOT;
 
 #define CANNON_SHOT_SPEED 4
@@ -395,6 +493,7 @@ bool ShotsAdd(bool isFromCannon, int x, int y)
 			shots[i].y = y + (CANNON_H / 2);
 			shots[i].isAvailable = false;
 			shots[i].isFromCannon = true;
+			shots[i].sprite = sprites.cannonShot;
 
 			return true;
 		}
@@ -406,10 +505,13 @@ bool ShotsAdd(bool isFromCannon, int x, int y)
 	{
 		if (!shots[i].isAvailable) continue;
 
+		al_play_sample(sampleCannonShoot, 0.6f, 0.f, 0.7f, ALLEGRO_PLAYMODE_ONCE, NULL);
+
 		shots[i].x = x - (INVADER_SHOT_W / 2);
 		shots[i].y = y;
 		shots[i].isAvailable = false;
 		shots[i].isFromCannon = false;
+		shots[i].sprite = sprites.invaderShot;
 
 		return true;
 	}
@@ -485,30 +587,11 @@ void ShotsUpdate()
 
 void ShotsDraw()
 {
-	//	Cannon shots
-	for (int i = 0; i < SHOTS_N_CANNON; i++)
+	for (int i = 0; i < SHOTS_N; i++)
 	{
 		if (shots[i].isAvailable) continue;
 
-		al_draw_filled_rectangle(
-			shots[i].x,
-			shots[i].y,
-			shots[i].x + CANNON_SHOT_W,
-			shots[i].y + CANNON_SHOT_H,
-			al_map_rgb(255, 255, 255));
-	}
-
-	// Alien shots
-	for (int i = SHOTS_N_CANNON; i < SHOTS_N; i++)
-	{
-		if (shots[i].isAvailable) continue;
-
-		al_draw_filled_rectangle(
-			shots[i].x,
-			shots[i].y,
-			shots[i].x + INVADER_SHOT_W,
-			shots[i].y + INVADER_SHOT_H,
-			al_map_rgb(255, 255, 0));
+		al_draw_bitmap(shots[i].sprite, shots[i].x, shots[i].y, NULL);
 	}
 }
 
@@ -540,7 +623,7 @@ void CannonInit()
 
 	Cannon.lives = 3;
 
-	cannonWaitTime = 120;
+	cannonWaitTime = 60;
 	cannonWaitTimer = cannonWaitTime;
 }
 
@@ -583,30 +666,19 @@ void CannonUpdate()
 void CannonDraw()
 {
 	if (Cannon.lives < 0) return;
+	if (gameState == GAME_STATE_PLAYER_RESPAWNING) return;
 
-	al_draw_filled_rectangle(
-		Cannon.x,
-		Cannon.y,
-		Cannon.x + CANNON_W,
-		Cannon.y + CANNON_H,
-		al_map_rgb(29, 255, 29));
+	al_draw_bitmap(sprites.cannon, Cannon.x, Cannon.y, 0);
 }
 
 // Aliens.
 // =============================================================================
-typedef enum INVADER_TYPE
-{
-	INVADER_TYPE_SQUID = 0,
-	INVADER_TYPE_CRAB,
-	INVADER_TYPE_OCTOPUS,
-	INVADER_TYPE_N
-} INVADER_TYPE;
-
 typedef struct INVADER
 {
 	int x, y;
 	int points;
 	bool isAlive;
+	ALLEGRO_BITMAP* sprite;
 	INVADER_TYPE type;
 } ALIEN;
 
@@ -624,6 +696,7 @@ int invaderFleetMoveTimer;
 int invaderFleetSpeedX;
 int invaderFleetSpeedY;
 int invadersAlive;
+bool needMoveInvadersX;
 bool needMoveInvadersY;
 bool playMoveSample;
 
@@ -653,6 +726,7 @@ void InvadersInit()
 			invaders[row][column].points = 30;
 			invaders[row][column].x = x + 2 + (column * cellW);
 			invaders[row][column].y = y + (row * cellH);
+			invaders[row][column].sprite = sprites.invaderSquid[0];
 		}
 	}
 
@@ -666,6 +740,7 @@ void InvadersInit()
 			invaders[row][column].points = 20;
 			invaders[row][column].x = x + (column * cellW);
 			invaders[row][column].y = y + (row * cellH);
+			invaders[row][column].sprite = sprites.invaderCrab[0];
 		}
 	}
 
@@ -679,6 +754,7 @@ void InvadersInit()
 			invaders[row][column].points = 10;
 			invaders[row][column].x = x + (column * cellW);
 			invaders[row][column].y = y + (row * cellH);
+			invaders[row][column].sprite = sprites.invaderOctopus[0];
 		}
 	}
 
@@ -699,7 +775,7 @@ void InvadersInit()
 
 void InvadersUpdate()
 {
-	// Collision.
+	// Invader destroyed.
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	if (invaderDestroyedTimer > 0)
 	{
@@ -800,90 +876,93 @@ void InvadersUpdate()
 	if (invaderFleetMoveTimer > 0)
 	{
 		invaderFleetMoveTimer--;
+		return;
 	}
-	else
+
+	// Move in X.
+	if (!needMoveInvadersY)
 	{
-		// Move in X.
-		if (!needMoveInvadersY)
+		for (int row = 0; row < INVADER_FLEET_ROWS; row++)
 		{
-			for (int row = 0; row < INVADER_FLEET_ROWS; row++)
+			for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
 			{
-				for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
+				invaders[row][column].x += invaderFleetSpeedX;
+			}
+		}
+
+		// Check positions in X.
+		for (int row = 0; row < INVADER_FLEET_ROWS; row++)
+		{
+			for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
+			{
+				if (!invaders[row][column].isAlive) continue;
+
+				if (invaders[row][column].x <= OFFSET)
 				{
-					invaders[row][column].x += invaderFleetSpeedX;
+					invaderFleetSpeedX *= -1;
+					needMoveInvadersY = true;
+					break;
+				}
+				else if ((invaders[row][column].x + invadersW[invaders[row][column].type]) >= (BUFFER_W - OFFSET))
+				{
+					invaderFleetSpeedX *= -1;
+					needMoveInvadersY = true;
+					break;
 				}
 			}
 
-			// Check positions in X.
-			for (int row = 0; row < INVADER_FLEET_ROWS; row++)
+			if (needMoveInvadersY)
 			{
-				for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
-				{
-					if (!invaders[row][column].isAlive) continue;
+				invaderFleetMoveTimer = invaderFleetMoveTime;
+				return;
+			}
+		}
 
-					if (invaders[row][column].x <= OFFSET)
-					{
-						invaderFleetSpeedX *= -1;
-						needMoveInvadersY = true;
-						break;
-					}
-					else if ((invaders[row][column].x + invadersW[invaders[row][column].type]) >= (BUFFER_W - OFFSET))
-					{
-						invaderFleetSpeedX *= -1;
-						needMoveInvadersY = true;
-						break;
-					}
-				}
+		if (invadersAlive > 30) playMoveSample = true;
+		else if (frames % 30 == 0) playMoveSample = true;
+	}
 
-				if (needMoveInvadersY)
+	// Move in Y.
+	if (needMoveInvadersY)
+	{
+		for (int row = 0; row < INVADER_FLEET_ROWS; row++)
+		{
+			for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
+			{
+				invaders[row][column].y += invaderFleetSpeedY;
+			}
+		}
+
+		// Check land position.
+		for (int row = 0; row < INVADER_FLEET_ROWS; row++)
+		{
+			for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
+			{
+				if (!invaders[row][column].isAlive) continue;
+
+				int invaderPositon = invaders[row][column].y + invadersH[invaders[row][column].type] + 3;
+				if (invaderPositon >= LAND_POSITION)
 				{
-					invaderFleetMoveTimer = invaderFleetMoveTime;
+					gameState = GAME_STATE_INVADERS_WIN;
 					return;
 				}
 			}
-
-			if (invadersAlive > 20) playMoveSample = true;
-			else if (frames % 120 == 0) playMoveSample = true;
 		}
 
-		// Move in Y.
-		if (needMoveInvadersY)
-		{
-			for (int row = 0; row < INVADER_FLEET_ROWS; row++)
-			{
-				for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
-				{
-					invaders[row][column].y += invaderFleetSpeedY;
-				}
-			}
-
-			// Check land position.
-			for (int row = 0; row < INVADER_FLEET_ROWS; row++)
-			{
-				for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
-				{
-					if (!invaders[row][column].isAlive) continue;
-
-					int invaderPositon = invaders[row][column].y + invadersH[invaders[row][column].type] + 3;
-					if (invaderPositon >= LAND_POSITION)
-					{
-						gameState = GAME_STATE_INVADERS_WIN;
-						return;
-					}
-				}
-			}
-
-			needMoveInvadersY = false;
-		}
-
-		if (playMoveSample)
-		{
-			al_play_sample(samplesInvadersMove[Between(0, 3)], 0.75f, 0.f, 1.f, ALLEGRO_PLAYMODE_ONCE, NULL);
-		}
-
-		// Reset timer.
-		invaderFleetMoveTimer = invaderFleetMoveTime;
+		needMoveInvadersY = false;
 	}
+
+	// TODO: Add fleet movement audio.
+	/*
+	if (playMoveSample)
+	{
+		al_play_sample(samplesInvadersMove[Between(0, 3)], 0.75f, 0.f, 1.f, ALLEGRO_PLAYMODE_ONCE, NULL);
+		playMoveSample = false;
+	}
+	*/
+
+	// Reset timer.
+	invaderFleetMoveTimer = invaderFleetMoveTime;
 }
 
 void InvadersDraw()
@@ -892,27 +971,9 @@ void InvadersDraw()
 	{
 		for (size_t column = 0; column < INVADER_FLEET_COLUMNS; column++)
 		{
-			//if (!invaders[row][column].isAlive) continue;
-			// TODO: [InvadersDraw]: Don't draw death invaders.
+			if (!invaders[row][column].isAlive) continue;
 
-			if (invaders[row][column].isAlive)
-			{
-				al_draw_filled_rectangle(
-					invaders[row][column].x,
-					invaders[row][column].y,
-					invaders[row][column].x + invadersW[invaders[row][column].type],
-					invaders[row][column].y + invadersH[invaders[row][column].type],
-					al_map_rgb(200, 0, 0));
-			}
-			else
-			{
-				al_draw_filled_rectangle(
-					invaders[row][column].x,
-					invaders[row][column].y,
-					invaders[row][column].x + invadersW[invaders[row][column].type],
-					invaders[row][column].y + invadersH[invaders[row][column].type],
-					al_map_rgb(150, 0, 0));
-			}
+			al_draw_bitmap(invaders[row][column].sprite, invaders[row][column].x, invaders[row][column].y, NULL);
 		}
 	}
 }
@@ -939,7 +1000,7 @@ void HUDDeinit()
 
 void HUDUpdate()
 {
-	if (frames % 2) return;
+	if (frames % 60 == 0) return;
 	for (long i = 5; i > 0; i--)
 	{
 		long diff = 1 << i;
@@ -960,8 +1021,17 @@ void HUDDraw()
 
 	al_draw_line(OFFSET, 239, BUFFER_W - OFFSET, 239, al_map_rgb(29, 255, 29), 1.f);
 
+	// Cannon lives.
 	al_draw_textf(font, al_map_rgb(255, 255, 255), OFFSET + 10, LAND_POSITION, 0, "%ld", Cannon.lives);
+	for (int i = 0; i < Cannon.lives; i++)
+	{
+		int x = OFFSET + 20 + ((CANNON_W + 3) * i);
+		int y = LAND_POSITION + 3;
 
+		al_draw_bitmap(sprites.life, x, y, NULL);
+	}
+
+	// Game state.
 	if (gameState == GAME_STATE_PLAYER_WIN)
 	{
 		al_draw_text(font, al_map_rgb_f(1, 1, 1), BUFFER_W / 2, BUFFER_H / 2, ALLEGRO_ALIGN_CENTER, "G A M E  O V E R");
@@ -984,6 +1054,7 @@ int main()
 	MustInit(al_init_primitives_addon(), "primitives");
 	MustInit(al_init_font_addon(), "fonts");
 	MustInit(al_init_ttf_addon(), "ttf");
+	MustInit(al_init_image_addon(), "image");
 
 	ALLEGRO_TIMER* timer = al_create_timer(1.0 / 60.0);
 	MustInit(timer, "timer");
@@ -1003,6 +1074,7 @@ int main()
 
 	// Game Loop.
 	// -------------------------------------------------------------------------
+	SpriteInit();
 	CannonInit();
 	ShotsInit();
 	InvadersInit();
@@ -1083,17 +1155,14 @@ int main()
 			DisplayPreDraw();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
 
-			// TODO: Remove background rectangle.
-			al_draw_filled_rectangle(OFFSET, 0, BUFFER_W - OFFSET, BUFFER_H, al_map_rgb(30, 30, 30));
-
 			// Update draw logic.
 			//------------------------------------------------------------------
 			if (gameState == GAME_STATE_RUNNING || gameState == GAME_STATE_PLAYER_RESPAWNING)
 			{
-				CannonDraw();
-				InvadersDraw();
 				ShotsDraw();
+				InvadersDraw();
 				FxDraw();
+				CannonDraw();
 			}
 			HUDDraw();
 
@@ -1107,6 +1176,7 @@ int main()
 	DisplayDeinit();
 	HUDDeinit();
 	AudioDeinit();
+	SpriteDeinit();
 	al_destroy_timer(timer);
 	al_destroy_event_queue(queue);
 

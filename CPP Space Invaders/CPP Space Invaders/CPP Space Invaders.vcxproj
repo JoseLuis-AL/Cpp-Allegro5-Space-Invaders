@@ -146,12 +146,16 @@
     <Font Include="monogram.ttf" />
   </ItemGroup>
   <ItemGroup>
+    <Media Include="explosion.wav" />
     <Media Include="fastinvader1.wav" />
     <Media Include="fastinvader2.wav" />
     <Media Include="fastinvader3.wav" />
     <Media Include="fastinvader4.wav" />
     <Media Include="invaderkilled.wav" />
     <Media Include="shoot.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="spritesheet.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
