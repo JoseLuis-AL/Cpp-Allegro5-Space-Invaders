@@ -20,12 +20,13 @@ long hiscore;
 
 typedef enum GAME_STATE
 {
-	GAME_STATE_RUNNING = 0,
-	GAME_STATE_PLAYER_WIN,
-	GAME_STATE_PLAYER_RESPAWNING,
-	GAME_STATE_INVADERS_WIN
+	GAME_STATE_MAIN_SCREEN = 0,
+	GAME_STATE_GAMEPLAY_RUNNING,
+	GAME_STATE_GAMEPLAY_RESPAWNING,
+	GAME_STATE_GAMEOVER_WIN,
+	GAME_STATE_GAMEOVER_LOSE,
 } GAME_STATE;
-GAME_STATE gameState;
+GAME_STATE currentState;
 
 // Utilities.
 // =============================================================================
@@ -131,6 +132,10 @@ void KeyboardUpdate(ALLEGRO_EVENT* event)
 
 // Sprites.
 // =============================================================================
+
+#define GAME_TITLE_IMAGE_W 200
+#define GAME_TITLE_IMAGE_H 90
+
 #define CANNON_W 13
 #define CANNON_H 8
 
@@ -188,6 +193,8 @@ typedef struct SPRITES
 
 	ALLEGRO_BITMAP* cannonShotExplosion;
 	ALLEGRO_BITMAP* invaderShotExplosion;
+
+	ALLEGRO_BITMAP* gameTitleImage;
 } Sprite;
 SPRITES sprites;
 
@@ -223,6 +230,8 @@ void SpriteInit()
 	sprites.invaderOctopus[1] = GetSprite(12, 8, invadersW[INVADER_TYPE_OCTOPUS], invadersH[INVADER_TYPE_OCTOPUS]);
 
 	sprites.invaderExplosion = GetSprite(29, 0, INVADER_EXPLOSION_W, INVADER_EXPLOSION_H);
+
+	sprites.gameTitleImage = al_load_bitmap("game_title.png");
 }
 
 void SpriteDeinit()
@@ -248,6 +257,8 @@ void SpriteDeinit()
 
 	al_destroy_bitmap(sprites.cannonShotExplosion);
 	al_destroy_bitmap(sprites.invaderShotExplosion);
+
+	al_destroy_bitmap(sprites.gameTitleImage);
 
 	al_destroy_bitmap(sprites._sheet);
 }
@@ -424,7 +435,7 @@ void FxUpdate()
 	// Update cannon explosion.
 	if (!fx[CANNON_EXPLOSION_INDEX].isAvailable)
 	{
-		if (gameState == GAME_STATE_RUNNING) fx[CANNON_EXPLOSION_INDEX].isAvailable = true;
+		if (currentState == GAME_STATE_GAMEPLAY_RUNNING) fx[CANNON_EXPLOSION_INDEX].isAvailable = true;
 	}
 
 	// Update invader explosion.
@@ -616,11 +627,11 @@ void ShotsDraw()
 // =============================================================================
 #define CANNON_SPEED 2
 
-#define CANNON_START_X (BUFFER_W / 2) - (CANNON_W / 2)
-#define CANNON_START_Y 217
+const int CANNON_START_X = (BUFFER_W / 2) - (CANNON_W / 2);
+const int CANNON_START_Y = 217;
 
-#define CANNON_MIN_X (OFFSET)
-#define CANNON_MAX_X ((BUFFER_W - OFFSET) - CANNON_W)
+const int CANNON_MIN_X = OFFSET;
+const int CANNON_MAX_X = (BUFFER_W - OFFSET) - CANNON_W;
 
 int cannonWaitTimer;
 int cannonWaitTime;
@@ -674,7 +685,7 @@ void CannonUpdate()
 	if (ShotsCollide(true, Cannon.x, Cannon.y, CANNON_W, CANNON_H))
 	{
 		Cannon.lives--;
-		gameState = GAME_STATE_PLAYER_RESPAWNING;
+		currentState = GAME_STATE_GAMEPLAY_RESPAWNING;
 
 		FxAdd(Cannon.x, Cannon.y, FX_TYPE_CANNON_EXPLOSION);
 	}
@@ -683,7 +694,7 @@ void CannonUpdate()
 void CannonDraw()
 {
 	if (Cannon.lives < 0) return;
-	if (gameState == GAME_STATE_PLAYER_RESPAWNING) return;
+	if (currentState == GAME_STATE_GAMEPLAY_RESPAWNING) return;
 
 	al_draw_bitmap(sprites.cannon, Cannon.x, Cannon.y, 0);
 }
@@ -831,7 +842,7 @@ void InvadersUpdate()
 				invadersAlive--;
 				if (invadersAlive == 0)
 				{
-					gameState = GAME_STATE_PLAYER_WIN;
+					currentState = GAME_STATE_GAMEOVER_WIN;
 					return;
 				}
 
@@ -857,7 +868,7 @@ void InvadersUpdate()
 				Cannon.x + CANNON_W,
 				Cannon.y + CANNON_H))
 			{
-				gameState = GAME_STATE_INVADERS_WIN;
+				currentState = GAME_STATE_GAMEOVER_LOSE;
 				return;
 			}
 		}
@@ -970,7 +981,7 @@ void InvadersUpdate()
 				int invaderPositon = invaders[row][column].y + invadersH[invaders[row][column].type] + 3;
 				if (invaderPositon >= LAND_POSITION)
 				{
-					gameState = GAME_STATE_INVADERS_WIN;
+					currentState = GAME_STATE_GAMEOVER_LOSE;
 					return;
 				}
 			}
@@ -979,14 +990,12 @@ void InvadersUpdate()
 		needMoveInvadersY = false;
 	}
 
-	// TODO: Add fleet movement audio.
-	/*
+	// Play sound.
 	if (playMoveSample)
 	{
 		al_play_sample(samplesInvadersMove[Between(0, 3)], 0.75f, 0.f, 1.f, ALLEGRO_PLAYMODE_ONCE, NULL);
 		playMoveSample = false;
 	}
-	*/
 
 	// Reset timer.
 	invaderFleetMoveTimer = invaderFleetMoveTime;
@@ -994,13 +1003,17 @@ void InvadersUpdate()
 
 void InvadersDraw()
 {
-	for (size_t row = 0; row < INVADER_FLEET_ROWS; row++)
+	for (int row = 0; row < INVADER_FLEET_ROWS; row++)
 	{
-		for (size_t column = 0; column < INVADER_FLEET_COLUMNS; column++)
+		for (int column = 0; column < INVADER_FLEET_COLUMNS; column++)
 		{
 			if (!invaders[row][column].isAlive) continue;
 
-			al_draw_bitmap(invaders[row][column].sprites[invaders[row][column].frame], invaders[row][column].x, invaders[row][column].y, NULL);
+			al_draw_bitmap(
+				invaders[row][column].sprites[invaders[row][column].frame],
+				invaders[row][column].x,
+				invaders[row][column].y,
+				NULL);
 		}
 	}
 }
@@ -1014,7 +1027,6 @@ void HUDInit()
 {
 	font = al_load_font("monogram.ttf", 16, 0);
 
-	//font = al_create_builtin_font();
 	MustInit(font, "font");
 
 	scoreDisplay = 0;
@@ -1027,7 +1039,7 @@ void HUDDeinit()
 
 void HUDUpdate()
 {
-	if (frames % 60 == 0) return;
+	if (frames % 2) return;
 	for (long i = 5; i > 0; i--)
 	{
 		long diff = 1 << i;
@@ -1057,17 +1069,6 @@ void HUDDraw()
 
 		al_draw_bitmap(sprites.life, x, y, NULL);
 	}
-
-	// Game state.
-	if (gameState == GAME_STATE_PLAYER_WIN)
-	{
-		al_draw_text(font, al_map_rgb_f(1, 1, 1), BUFFER_W / 2, BUFFER_H / 2, ALLEGRO_ALIGN_CENTER, "G A M E  O V E R");
-		al_draw_text(font, al_map_rgb_f(1, 1, 1), BUFFER_W / 2, BUFFER_H / 2 + 20, ALLEGRO_ALIGN_CENTER, "W I N");
-	}
-	if (gameState == GAME_STATE_INVADERS_WIN)
-	{
-		al_draw_text(font, al_map_rgb_f(1, 1, 1), BUFFER_W / 2, BUFFER_H / 2, ALLEGRO_ALIGN_CENTER, "G A M E  O V E R");
-	}
 }
 
 // Score.
@@ -1086,6 +1087,137 @@ void ScoreSave()
 		std::ofstream outfile("score.txt");
 		outfile << score;
 		outfile.close();
+	}
+}
+
+// Main screen.
+// =============================================================================
+const int GAME_TITLE_X = (BUFFER_W / 2) - (GAME_TITLE_IMAGE_W / 2);
+const int GAME_TITLE_Y = 30;
+const int START_GAME_TEXT_X = BUFFER_W / 2;
+const int START_GAME_TEXT_Y = BUFFER_H / 2 + 20;
+
+const ALLEGRO_COLOR	MainScreenTextColor = al_map_rgb(255, 255, 255);
+const ALLEGRO_COLOR	MainScreenPointTextColor = al_map_rgb(208, 208, 208);
+bool showStartText = true;
+
+void MainScreenUpdate()
+{
+	if (showStartText && frames % 60 == 0) showStartText = false;
+	else if (frames % 15 == 0) showStartText = true;
+
+	if (key[ALLEGRO_KEY_ENTER])
+	{
+		currentState = GAME_STATE_GAMEPLAY_RUNNING;
+	}
+}
+
+void MainScreenDraw()
+{
+	al_draw_bitmap(sprites.gameTitleImage, GAME_TITLE_X, GAME_TITLE_Y, NULL);
+
+	// Press text.
+	if (showStartText)
+	{
+		al_draw_text(font, MainScreenTextColor, START_GAME_TEXT_X, START_GAME_TEXT_Y, ALLEGRO_ALIGN_CENTER, "PRESS [ENTER] TO START");
+	}
+
+	// Points (invaders).
+	al_draw_tinted_bitmap(sprites.invaderSquid[0], MainScreenPointTextColor, 85, 180, NULL);
+	al_draw_tinted_bitmap(sprites.invaderCrab[0], MainScreenPointTextColor, 83, 200, NULL);
+	al_draw_tinted_bitmap(sprites.invaderOctopus[0], MainScreenPointTextColor, 83, 220, NULL);
+
+	// Points (text).
+	al_draw_text(font, MainScreenPointTextColor, 95, 176, NULL, " = 30 POINTS");
+	al_draw_text(font, MainScreenPointTextColor, 95, 196, NULL, " = 20 POINTS");
+	al_draw_text(font, MainScreenPointTextColor, 95, 216, NULL, " = 10 POINTS");
+}
+
+// Gameplay screen.
+// =============================================================================
+void GameplayUpdate()
+{
+	CannonUpdate();
+	InvadersUpdate();
+	ShotsUpdate();
+	FxUpdate();
+	HUDUpdate();
+}
+
+void GameplayRespawning()
+{
+	if (Cannon.lives <= 0)
+	{
+		ShotsInit();
+		CannonReset();
+
+		currentState = GAME_STATE_GAMEOVER_LOSE;
+	}
+	else
+	{
+		if (cannonWaitTimer > 0)
+		{
+			cannonWaitTimer--;
+		}
+		else
+		{
+			ShotsInit();
+			CannonReset();
+
+			cannonWaitTimer = cannonWaitTime;
+			currentState = GAME_STATE_GAMEPLAY_RUNNING;
+		}
+	}
+}
+
+void GameplayDraw()
+{
+	ShotsDraw();
+	InvadersDraw();
+	FxDraw();
+	CannonDraw();
+	HUDDraw();
+}
+
+// GameOver screen.
+// =============================================================================
+
+const int GAMEOVER_TEXT_X = BUFFER_W / 2;
+const int GAMEOVER_TEXT_Y = 112;
+const int GAMEOVER_WIN_TEXT_Y = 132;
+const int GAMEOVER_HISCORE_TEXT_Y = 90;
+
+const ALLEGRO_COLOR GAMEOVER_TEXT_COLOR = al_map_rgb(255, 255, 255);
+const ALLEGRO_COLOR GAMEOVER_LOSE_TEXT_COLOR = al_map_rgb(228, 59, 68);
+
+void GameOverScreenUpdate()
+{
+}
+
+void GameOverScreenDraw()
+{
+	// Score.
+	if (score > hiscore)
+	{
+		al_draw_textf(
+			font,
+			GAMEOVER_TEXT_COLOR,
+			GAMEOVER_TEXT_X,
+			GAMEOVER_HISCORE_TEXT_Y,
+			ALLEGRO_ALIGN_CENTER,
+			"NEW HISCORE: %04ld",
+			score);
+	}
+
+	// Game state.
+	if (currentState == GAME_STATE_GAMEOVER_WIN)
+	{
+		al_draw_text(font, GAMEOVER_TEXT_COLOR, GAMEOVER_TEXT_X, GAMEOVER_TEXT_Y, ALLEGRO_ALIGN_CENTER, "G A M E  O V E R");
+		al_draw_text(font, GAMEOVER_TEXT_COLOR, GAMEOVER_TEXT_X, GAMEOVER_WIN_TEXT_Y, ALLEGRO_ALIGN_CENTER, "W I N");
+	}
+	if (currentState == GAME_STATE_GAMEOVER_LOSE)
+	{
+		al_draw_text(font, GAMEOVER_LOSE_TEXT_COLOR, GAMEOVER_TEXT_X, GAMEOVER_TEXT_Y, ALLEGRO_ALIGN_CENTER, "G A M E  O V E R");
 	}
 }
 
@@ -1129,7 +1261,7 @@ int main()
 	HUDInit();
 
 	frames = 0;
-	gameState = GAME_STATE_RUNNING;
+	currentState = GAME_STATE_MAIN_SCREEN;
 
 	ScoreLoad();
 
@@ -1148,40 +1280,25 @@ int main()
 		{
 			// Update logic.
 			//------------------------------------------------------------------
-			if (gameState == GAME_STATE_RUNNING)
+			switch (currentState)
 			{
-				CannonUpdate();
-				InvadersUpdate();
-				ShotsUpdate();
+			case GAME_STATE_MAIN_SCREEN:
+				MainScreenUpdate();
+				break;
+
+			case GAME_STATE_GAMEPLAY_RUNNING:
+				GameplayUpdate();
+				break;
+
+			case GAME_STATE_GAMEPLAY_RESPAWNING:
+				GameplayRespawning();
+				break;
+
+			case GAME_STATE_GAMEOVER_WIN:
+			case GAME_STATE_GAMEOVER_LOSE:
+				GameOverScreenUpdate();
+				break;
 			}
-			else if (gameState == GAME_STATE_PLAYER_RESPAWNING)
-			{
-				if (Cannon.lives <= 0)
-				{
-					ShotsInit();
-					CannonReset();
-
-					gameState = GAME_STATE_INVADERS_WIN;
-				}
-				else
-				{
-					if (cannonWaitTimer > 0)
-					{
-						cannonWaitTimer--;
-					}
-					else
-					{
-						ShotsInit();
-						CannonReset();
-
-						cannonWaitTimer = cannonWaitTime;
-						gameState = GAME_STATE_RUNNING;
-					}
-				}
-			}
-
-			FxUpdate();
-			HUDUpdate();
 
 			if (key[ALLEGRO_KEY_ESCAPE]) isDone = true;
 
@@ -1204,14 +1321,22 @@ int main()
 
 			// Update draw logic.
 			//------------------------------------------------------------------
-			if (gameState == GAME_STATE_RUNNING || gameState == GAME_STATE_PLAYER_RESPAWNING)
+			switch (currentState)
 			{
-				ShotsDraw();
-				InvadersDraw();
-				FxDraw();
-				CannonDraw();
+			case GAME_STATE_MAIN_SCREEN:
+				MainScreenDraw();
+				break;
+
+			case GAME_STATE_GAMEPLAY_RUNNING:
+			case GAME_STATE_GAMEPLAY_RESPAWNING:
+				GameplayDraw();
+				break;
+
+			case GAME_STATE_GAMEOVER_WIN:
+			case GAME_STATE_GAMEOVER_LOSE:
+				GameOverScreenDraw();
+				break;
 			}
-			HUDDraw();
 
 			DisplayPostDraw();
 			needRedraw = false;

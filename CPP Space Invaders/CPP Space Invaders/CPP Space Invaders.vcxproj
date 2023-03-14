@@ -155,6 +155,7 @@
     <Media Include="shoot.wav" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="game_title.png" />
     <Image Include="spritesheet.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
