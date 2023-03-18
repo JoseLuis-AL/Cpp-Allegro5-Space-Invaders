@@ -2,7 +2,7 @@
 
 by: José Luis Aguilera Luzania
 
-This is a very simple Space Invaders clone, done in 3 days with C++ and Allegro5. The game is made as a simple practice.
+This is a very simple Space Invaders clone, done in 3 days with C++ and Allegro5. The game is made as a simple practice in my free time.
 
 The game contains a basic main screen, basic gameplay, and a basic GameOver screen, saves the highest recorded score and displays it during gameplay.
 
