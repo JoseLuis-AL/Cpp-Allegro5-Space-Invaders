@@ -22,7 +22,7 @@ For the creation of the game, the following page was used as a reference for gra
 After reading about the history of Space Invaders, its gameplay and the limitations that the original game had, I created a concept using Aseprite to help me visualize what the finished game would look like.
 
 <p align="center">
-  <img src="https://github.com/JoseLuis-AL/Cpp-Allegro5-Space-Invaders/blob/main/ReadmeResources/Concept.png?raw=true" width=300 height=300 alt="Logo"/>
+  <img src="https://github.com/JoseLuis-AL/Cpp-Allegro5-Space-Invaders/blob/main/ReadmeResources/Concept.png?raw=true" width=400 height=400 alt="Logo"/>
 </p>
 
 
@@ -31,7 +31,10 @@ After reading about the history of Space Invaders, its gameplay and the limitati
 Initially I created a prototype with the basic elements, the graphics were simple rectangles with no sound and no movement except for the player to test collisions and points.
 
 
-![[Prototype.png]]
+<p align="center">
+  <img src="https://github.com/JoseLuis-AL/Cpp-Allegro5-Space-Invaders/blob/main/ReadmeResources/Prototype.png?raw=true" width=400 height=400 alt="Logo"/>
+</p>
+
 
 
 ### Final
@@ -41,15 +44,26 @@ After several iterations, the game contains all the basic elements of the origin
 - The player can only have one laser on screen at any time.
 - Shields can resist multiple lasers.
 
-![[Final.png]]
+<p align="center">
+  <img src="https://github.com/JoseLuis-AL/Cpp-Allegro5-Space-Invaders/blob/main/ReadmeResources/Final.png?raw=true" width=400 height=400 alt="Logo"/>
+</p>
+
 
 
 ### Main menu
-![[MainMenu.png]]
+
+<p align="center">
+  <img src="https://github.com/JoseLuis-AL/Cpp-Allegro5-Space-Invaders/blob/main/ReadmeResources/MainMenu.png?raw=true" width=400 height=400 alt="Logo"/>
+</p>
+
 
 
 ### Game Over
-![[GameOver.png]]
+
+<p align="center">
+  <img src="https://github.com/JoseLuis-AL/Cpp-Allegro5-Space-Invaders/blob/main/ReadmeResources/GameOver.png?raw=true" width=400 height=400 alt="Logo"/>
+</p>
+
 
 
 ## Adicional
