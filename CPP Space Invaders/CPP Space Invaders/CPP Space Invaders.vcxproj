@@ -137,26 +137,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Main.Cpp" />
+    <ClCompile Include="Main_old.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Font Include="monogram.ttf" />
+    <ClInclude Include="ThirdParty\effolkronium\random.hpp" />
+    <ClInclude Include="Utilities.h" />
   </ItemGroup>
   <ItemGroup>
-    <Media Include="explosion.wav" />
-    <Media Include="fastinvader1.wav" />
-    <Media Include="fastinvader2.wav" />
-    <Media Include="fastinvader3.wav" />
-    <Media Include="fastinvader4.wav" />
-    <Media Include="invaderkilled.wav" />
-    <Media Include="shoot.wav" />
+    <Font Include="Assets\Fonts\monogram.ttf" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="game_title.png" />
-    <Image Include="spritesheet.png" />
+    <Image Include="Assets\Sprites\Logo.png" />
+    <Image Include="Assets\Sprites\SpriteSheet.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="Assets\Audio\CannonExplosion.wav" />
+    <Media Include="Assets\Audio\InvaderExplosion.wav" />
+    <Media Include="Assets\Audio\Laser.wav" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

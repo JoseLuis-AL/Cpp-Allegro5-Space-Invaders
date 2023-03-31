@@ -13,9 +13,30 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Archivos de recursos\Assets">
+      <UniqueIdentifier>{36aa1a4e-8408-426a-874b-afcde47ff2d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de recursos\Assets\Sprites">
+      <UniqueIdentifier>{a8ac9d10-51c5-4d79-84c3-7012da759b43}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de recursos\Assets\Fonts">
+      <UniqueIdentifier>{d9065952-3226-4b23-8365-9e17ab193336}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de encabezado\ThirdParty">
+      <UniqueIdentifier>{89f811eb-b554-42e3-9967-e1ca0f788cc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de encabezado\ThirdParty\effolkronium">
+      <UniqueIdentifier>{4ecbe32e-3a92-4874-9a6c-0a27431f078c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de recursos\Assets\Audio">
+      <UniqueIdentifier>{cba8c1ba-efc6-430e-b169-a6b84730db0d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
+    <ClCompile Include="Main_old.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.Cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
   </ItemGroup>
@@ -23,39 +44,35 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Font Include="monogram.ttf">
-      <Filter>Archivos de recursos</Filter>
+    <ClInclude Include="Utilities.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\effolkronium\random.hpp">
+      <Filter>Archivos de encabezado\ThirdParty\effolkronium</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="Assets\Fonts\monogram.ttf">
+      <Filter>Archivos de recursos\Assets\Fonts</Filter>
     </Font>
   </ItemGroup>
   <ItemGroup>
-    <Media Include="invaderkilled.wav">
-      <Filter>Archivos de recursos</Filter>
-    </Media>
-    <Media Include="shoot.wav">
-      <Filter>Archivos de recursos</Filter>
-    </Media>
-    <Media Include="fastinvader4.wav">
-      <Filter>Archivos de recursos</Filter>
-    </Media>
-    <Media Include="fastinvader1.wav">
-      <Filter>Archivos de recursos</Filter>
-    </Media>
-    <Media Include="fastinvader2.wav">
-      <Filter>Archivos de recursos</Filter>
-    </Media>
-    <Media Include="fastinvader3.wav">
-      <Filter>Archivos de recursos</Filter>
-    </Media>
-    <Media Include="explosion.wav">
-      <Filter>Archivos de recursos</Filter>
-    </Media>
+    <Image Include="Assets\Sprites\SpriteSheet.png">
+      <Filter>Archivos de recursos\Assets\Sprites</Filter>
+    </Image>
+    <Image Include="Assets\Sprites\Logo.png">
+      <Filter>Archivos de recursos\Assets\Sprites</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="spritesheet.png">
-      <Filter>Archivos de recursos</Filter>
-    </Image>
-    <Image Include="game_title.png">
-      <Filter>Archivos de recursos</Filter>
-    </Image>
+    <Media Include="Assets\Audio\CannonExplosion.wav">
+      <Filter>Archivos de recursos\Assets\Audio</Filter>
+    </Media>
+    <Media Include="Assets\Audio\InvaderExplosion.wav">
+      <Filter>Archivos de recursos\Assets\Audio</Filter>
+    </Media>
+    <Media Include="Assets\Audio\Laser.wav">
+      <Filter>Archivos de recursos\Assets\Audio</Filter>
+    </Media>
   </ItemGroup>
 </Project>
