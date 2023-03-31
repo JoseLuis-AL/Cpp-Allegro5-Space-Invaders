@@ -4,6 +4,10 @@ by: José Luis Aguilera Luzania
 
 ![Image](./ReadmeResources/Logo.png)
 
+<div style="text-align: center;">
+<img alt="Logo" src="https://github.com/JoseLuis-AL/Cpp-Allegro5-Space-Invaders/blob/main/ReadmeResources/Logo.png"/>
+</div>
+
 
 This is a very simple Space Invaders clone, done in 3 days with C++ and Allegro5. The game is made as a simple practice in my free time.
 
