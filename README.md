@@ -21,7 +21,10 @@ For the creation of the game, the following page was used as a reference for gra
 ### Concept
 After reading about the history of Space Invaders, its gameplay and the limitations that the original game had, I created a concept using Aseprite to help me visualize what the finished game would look like.
 
-![[Concept.png]]
+<p align="center">
+  <img src="https://github.com/JoseLuis-AL/Cpp-Allegro5-Space-Invaders/blob/main/ReadmeResources/Concept.png?raw=true" alt="Logo"/>
+</p>
+
 
 
 ### Prototype  
